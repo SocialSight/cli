@@ -1,0 +1,4 @@
+/dist/
+/socialsight
+*.exe
+.DS_Store
