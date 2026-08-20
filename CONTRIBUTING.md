@@ -106,8 +106,17 @@ release** (e.g. only bump it to `0.2.0` after `v0.2.0` is tagged and released,
 not before) -- `.github/workflows/ci.yml`'s `npm-smoke` job packs and
 installs it on every push specifically to catch that class of drift early.
 
-Publishing is manual for now (no `NPM_TOKEN`-based automation yet, mirroring
-where the Homebrew tap started):
+Publishing is automated: `.github/workflows/release.yml` bumps
+`npm/package.json`'s version to match the tag, runs `npm publish
+--access public`, then commits that version bump back to `main` so the repo
+never drifts from what's actually published. This uses npm's
+[Trusted Publisher](https://docs.npmjs.com/trusted-publishers) (OIDC) --
+no `NPM_TOKEN` secret, just `permissions: id-token: write` in the workflow.
+`@socialsight/cli`'s Trusted Publisher on npmjs.com is configured for the
+`SocialSight/cli` repo, workflow file `release.yml`, action `npm publish`.
+
+To publish by hand instead (e.g. Trusted Publisher misconfigured, or from a
+machine without OIDC):
 
 ```bash
 cd npm

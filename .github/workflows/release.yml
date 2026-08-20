@@ -7,6 +7,7 @@ on:
 
 permissions:
   contents: write
+  id-token: write # required for npm's OIDC-based Trusted Publisher, no NPM_TOKEN needed
 
 jobs:
   goreleaser:
@@ -29,3 +30,32 @@ jobs:
           # Needs write access to SocialSight/homebrew-tap (a fine-grained PAT),
           # since the default GITHUB_TOKEN above can only push to this repo.
           HOMEBREW_TAP_GITHUB_TOKEN: ${{ secrets.HOMEBREW_TAP_GITHUB_TOKEN }}
+
+      - uses: actions/setup-node@v6
+        with:
+          node-version: "22"
+          registry-url: "https://registry.npmjs.org"
+
+      - name: Require npm >= 11.5.1 (Trusted Publisher support)
+        run: npm install -g npm@^11.5.1
+
+      - name: Sync npm/package.json's version to this tag
+        working-directory: npm
+        run: npm version "${GITHUB_REF_NAME#v}" --no-git-tag-version --allow-same-version
+
+      - name: Publish to npm
+        working-directory: npm
+        run: npm publish --access public
+
+      - name: Commit the npm version bump back to main
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git fetch origin main
+          git checkout main
+          npm version "${GITHUB_REF_NAME#v}" --no-git-tag-version --allow-same-version --prefix npm
+          if ! git diff --quiet -- npm/package.json; then
+            git add npm/package.json
+            git commit -m "npm: bump to ${GITHUB_REF_NAME#v}"
+            git push origin main
+          fi
