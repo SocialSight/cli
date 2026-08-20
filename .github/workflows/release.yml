@@ -26,3 +26,6 @@ jobs:
           args: release --clean
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          # Needs write access to SocialSight/homebrew-tap (a fine-grained PAT),
+          # since the default GITHUB_TOKEN above can only push to this repo.
+          HOMEBREW_TAP_GITHUB_TOKEN: ${{ secrets.HOMEBREW_TAP_GITHUB_TOKEN }}

@@ -49,3 +49,21 @@ release:
   github:
     owner: SocialSight
     name: cli
+
+brews:
+  - name: socialsight
+    repository:
+      owner: SocialSight
+      name: homebrew-tap
+      token: "{{ envOrDefault \"HOMEBREW_TAP_GITHUB_TOKEN\" \"\" }}"
+    # Don't fail the whole release if the cross-repo token isn't set yet;
+    # just skip updating the tap (the rest of the release still succeeds).
+    skip_upload: "{{ eq (envOrDefault \"HOMEBREW_TAP_GITHUB_TOKEN\" \"\") \"\" }}"
+    directory: Formula
+    homepage: "https://github.com/SocialSight/cli"
+    description: "Generate images and videos with SocialSight models"
+    license: "MIT"
+    install: |
+      bin.install "socialsight"
+    test: |
+      system "#{bin}/socialsight", "version"

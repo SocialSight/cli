@@ -59,6 +59,23 @@ goreleaser release --snapshot --clean --skip=publish
 This is also the foundation the curl installer (ENG-270), Homebrew tap
 (ENG-271), and npm wrapper (ENG-272) pull release assets from.
 
+## Homebrew tap
+
+The `brews:` section in `.goreleaser.yaml` pushes an updated formula to
+[SocialSight/homebrew-tap](https://github.com/SocialSight/homebrew-tap) on
+every release, so `brew install socialsight/tap/socialsight` stays current.
+This needs a `HOMEBREW_TAP_GITHUB_TOKEN` repository secret here (a
+fine-grained PAT with write access to that repo) -- without it, `skip_upload`
+is templated to skip the tap update gracefully rather than failing the whole
+release, so the GitHub Release itself and `install.sh` still work either way.
+
+Note: GoReleaser soft-deprecates `brews:` in favor of `homebrew_casks:` (see
+https://goreleaser.com/deprecations#brews). `brews:` still works fully today
+(confirmed by a real `brew install`/`test`/`audit` run against the tap), and
+migrating would mean restructuring the tap repo (`Casks/` instead of
+`Formula/`, different Ruby DSL) -- worth revisiting if it's ever actually
+removed, not before.
+
 ## Testing install.sh without a real release
 
 `install.sh` downloads from `https://github.com/SocialSight/cli/releases/...`,
