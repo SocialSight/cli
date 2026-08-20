@@ -262,10 +262,437 @@
           }
         }
       }
+    },
+    "/v1/credits": {
+      "get": {
+        "tags": [
+          "Credits"
+        ],
+        "summary": "Get Credits",
+        "operationId": "get_credits_v1_credits_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CreditBalanceResponse"
+                }
+              }
+            }
+          }
+        }
+      }
     }
   },
   "components": {
     "schemas": {
+      "GenerationModelType": {
+        "type": "string",
+        "enum": [
+          "all",
+          "image",
+          "video"
+        ],
+        "title": "GenerationModelType"
+      },
+      "MediaMetadata": {
+        "properties": {
+          "fileName": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Filename"
+          },
+          "size": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Size"
+          },
+          "width": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Width"
+          },
+          "height": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Height"
+          },
+          "durationMs": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Durationms"
+          },
+          "validationState": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Validationstate"
+          },
+          "validationError": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Validationerror"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "title": "MediaMetadata"
+      },
+      "ReferenceImage": {
+        "properties": {
+          "media_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 36,
+                "minLength": 1
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Media Id"
+          },
+          "image_url": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 2083,
+                "minLength": 1,
+                "format": "uri"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Image Url"
+          },
+          "image_bytes": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 13982037
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Image Bytes"
+          },
+          "content_type": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 128
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Content Type"
+          },
+          "file_name": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 512
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "File Name"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "title": "ReferenceImage"
+      },
+      "ImageGenerationMetadata": {
+        "properties": {
+          "prompt": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Prompt"
+          },
+          "modelId": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Modelid"
+          },
+          "presetId": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Presetid"
+          },
+          "presetVersion": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Presetversion"
+          },
+          "quality": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Quality"
+          },
+          "aspectRatio": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Aspectratio"
+          },
+          "seed": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Seed"
+          },
+          "references": {
+            "items": {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            "type": "array",
+            "title": "References"
+          },
+          "inputs": {
+            "items": {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            "type": "array",
+            "title": "Inputs"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "title": "ImageGenerationMetadata"
+      },
+      "ImageGenerationRequest": {
+        "properties": {
+          "prompt": {
+            "type": "string",
+            "maxLength": 8000,
+            "minLength": 1,
+            "title": "Prompt"
+          },
+          "model_id": {
+            "type": "string",
+            "maxLength": 100,
+            "minLength": 1,
+            "title": "Model Id"
+          },
+          "num_outputs": {
+            "type": "integer",
+            "maximum": 1.0,
+            "minimum": 1.0,
+            "title": "Num Outputs",
+            "default": 1
+          },
+          "quality": {
+            "type": "string",
+            "enum": [
+              "512p",
+              "1K",
+              "1.5K",
+              "2K",
+              "4K"
+            ],
+            "title": "Quality",
+            "default": "1K"
+          },
+          "aspect_ratio": {
+            "type": "string",
+            "maxLength": 10,
+            "minLength": 1,
+            "title": "Aspect Ratio",
+            "default": "auto"
+          },
+          "references": {
+            "items": {
+              "$ref": "#/components/schemas/ReferenceImage"
+            },
+            "type": "array",
+            "maxItems": 50,
+            "title": "References"
+          },
+          "seed": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Seed"
+          },
+          "metadata": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Metadata"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "prompt",
+          "model_id"
+        ],
+        "title": "ImageGenerationRequest"
+      },
+      "VideoInputType": {
+        "type": "string",
+        "enum": [
+          "ref_image",
+          "ref_video",
+          "ref_audio",
+          "start_frame",
+          "end_frame"
+        ],
+        "title": "VideoInputType"
+      },
+      "JobCreateResponse": {
+        "properties": {
+          "job_id": {
+            "type": "string",
+            "title": "Job Id"
+          },
+          "status": {
+            "$ref": "#/components/schemas/JobStatus"
+          }
+        },
+        "type": "object",
+        "required": [
+          "job_id",
+          "status"
+        ],
+        "title": "JobCreateResponse"
+      },
+      "JobType": {
+        "type": "string",
+        "enum": [
+          "IMAGE",
+          "VIDEO",
+          "IMAGE_PRESET",
+          "VIDEO_PRESET",
+          "ASSET_PROCESSING",
+          "UPSCALE"
+        ],
+        "title": "JobType"
+      },
+      "CreditBalanceResponse": {
+        "properties": {
+          "total_credits": {
+            "type": "integer",
+            "title": "Total Credits"
+          },
+          "subscription_credits": {
+            "type": "integer",
+            "title": "Subscription Credits"
+          },
+          "other_credits": {
+            "type": "integer",
+            "title": "Other Credits"
+          }
+        },
+        "type": "object",
+        "required": [
+          "total_credits",
+          "subscription_credits",
+          "other_credits"
+        ],
+        "title": "CreditBalanceResponse"
+      },
       "GenerationCostResponse": {
         "properties": {
           "credits": {
@@ -299,111 +726,41 @@
         ],
         "title": "GenerationCostResponse"
       },
-      "VideoGenerationRequest": {
+      "JobRecord": {
         "properties": {
-          "prompt": {
+          "job_id": {
             "type": "string",
-            "maxLength": 8000,
-            "title": "Prompt",
-            "default": ""
+            "title": "Job Id"
           },
-          "model_id": {
-            "type": "string",
-            "maxLength": 100,
-            "minLength": 1,
-            "title": "Model Id"
+          "job_type": {
+            "$ref": "#/components/schemas/JobType"
           },
-          "duration": {
+          "status": {
+            "$ref": "#/components/schemas/JobStatus"
+          },
+          "error_code": {
             "anyOf": [
               {
-                "type": "integer",
-                "maximum": 120.0,
-                "exclusiveMinimum": 0.0
-              },
-              {
-                "type": "integer",
-                "const": -1
-              }
-            ],
-            "title": "Duration",
-            "default": 5
-          },
-          "resolution": {
-            "type": "string",
-            "maxLength": 20,
-            "minLength": 1,
-            "title": "Resolution",
-            "default": "720p"
-          },
-          "aspect_ratio": {
-            "type": "string",
-            "maxLength": 10,
-            "minLength": 1,
-            "title": "Aspect Ratio",
-            "default": "16:9"
-          },
-          "enable_audio": {
-            "type": "boolean",
-            "title": "Enable Audio",
-            "default": false
-          },
-          "extend_video": {
-            "type": "boolean",
-            "title": "Extend Video",
-            "default": false
-          },
-          "extend_direction": {
-            "type": "string",
-            "enum": [
-              "forward",
-              "backward"
-            ],
-            "title": "Extend Direction",
-            "default": "backward"
-          },
-          "seed": {
-            "anyOf": [
-              {
-                "type": "integer"
+                "type": "string"
               },
               {
                 "type": "null"
               }
             ],
-            "title": "Seed"
+            "title": "Error Code"
           },
-          "character_orientation": {
+          "error_message": {
             "anyOf": [
               {
-                "type": "string",
-                "maxLength": 10
+                "type": "string"
               },
               {
                 "type": "null"
               }
             ],
-            "title": "Character Orientation"
+            "title": "Error Message"
           },
-          "keep_reference_audio": {
-            "anyOf": [
-              {
-                "type": "boolean"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Keep Reference Audio"
-          },
-          "inputs": {
-            "items": {
-              "$ref": "#/components/schemas/VideoJobInput"
-            },
-            "type": "array",
-            "maxItems": 50,
-            "title": "Inputs"
-          },
-          "metadata": {
+          "payload": {
             "anyOf": [
               {
                 "additionalProperties": true,
@@ -413,122 +770,164 @@
                 "type": "null"
               }
             ],
-            "title": "Metadata"
+            "title": "Payload"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Created At"
+          },
+          "last_updated_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Last Updated At"
+          },
+          "outputs": {
+            "items": {
+              "$ref": "#/components/schemas/MediaData"
+            },
+            "type": "array",
+            "title": "Outputs"
+          }
+        },
+        "type": "object",
+        "required": [
+          "job_id",
+          "job_type",
+          "status",
+          "created_at",
+          "last_updated_at"
+        ],
+        "title": "JobRecord"
+      },
+      "HTTPValidationError": {
+        "properties": {
+          "detail": {
+            "items": {
+              "$ref": "#/components/schemas/ValidationError"
+            },
+            "type": "array",
+            "title": "Detail"
+          }
+        },
+        "type": "object",
+        "title": "HTTPValidationError"
+      },
+      "VideoJobInput": {
+        "properties": {
+          "type": {
+            "$ref": "#/components/schemas/VideoInputType"
+          },
+          "media_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 36,
+                "minLength": 1
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Media Id"
+          },
+          "image_url": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 2083,
+                "minLength": 1,
+                "format": "uri"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Image Url"
+          },
+          "image_bytes": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 13982037
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Image Bytes"
+          },
+          "video_url": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 2083,
+                "minLength": 1,
+                "format": "uri"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Video Url"
+          },
+          "audio_url": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 2083,
+                "minLength": 1,
+                "format": "uri"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Audio Url"
+          },
+          "content_type": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 128
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Content Type"
+          },
+          "file_name": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 512
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "File Name"
+          },
+          "attributes": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Attributes"
           }
         },
         "additionalProperties": false,
         "type": "object",
         "required": [
-          "model_id"
+          "type"
         ],
-        "title": "VideoGenerationRequest"
-      },
-      "MediaData": {
-        "properties": {
-          "mediaId": {
-            "type": "string",
-            "title": "Mediaid"
-          },
-          "source": {
-            "$ref": "#/components/schemas/MediaSource"
-          },
-          "url": {
-            "type": "string",
-            "title": "Url"
-          },
-          "modality": {
-            "$ref": "#/components/schemas/MediaModality"
-          },
-          "contentType": {
-            "type": "string",
-            "title": "Contenttype"
-          },
-          "metadata": {
-            "$ref": "#/components/schemas/MediaMetadata"
-          },
-          "generationMetadata": {
-            "anyOf": [
-              {
-                "$ref": "#/components/schemas/ImageGenerationMetadata"
-              },
-              {
-                "$ref": "#/components/schemas/VideoGenerationMetadata"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Generationmetadata"
-          },
-          "jobId": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Jobid"
-          },
-          "lastFrameMediaId": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Lastframemediaid"
-          },
-          "isFavorite": {
-            "type": "boolean",
-            "title": "Isfavorite",
-            "default": false
-          },
-          "createdAt": {
-            "type": "string",
-            "format": "date-time",
-            "title": "Createdat"
-          },
-          "updatedAt": {
-            "type": "string",
-            "format": "date-time",
-            "title": "Updatedat"
-          }
-        },
-        "type": "object",
-        "required": [
-          "mediaId",
-          "source",
-          "url",
-          "modality",
-          "contentType",
-          "createdAt",
-          "updatedAt"
-        ],
-        "title": "MediaData"
-      },
-      "VideoInputType": {
-        "type": "string",
-        "enum": [
-          "ref_image",
-          "ref_video",
-          "ref_audio",
-          "start_frame",
-          "end_frame"
-        ],
-        "title": "VideoInputType"
-      },
-      "GenerationModelType": {
-        "type": "string",
-        "enum": [
-          "all",
-          "image",
-          "video"
-        ],
-        "title": "GenerationModelType"
+        "title": "VideoJobInput"
       },
       "VideoGenerationMetadata": {
         "properties": {
@@ -678,9 +1077,63 @@
         "type": "object",
         "title": "VideoGenerationMetadata"
       },
-      "MediaMetadata": {
+      "MediaModality": {
+        "type": "string",
+        "enum": [
+          "image",
+          "video",
+          "audio"
+        ],
+        "title": "MediaModality"
+      },
+      "JobStatus": {
+        "type": "string",
+        "enum": [
+          "pending",
+          "processing",
+          "completed",
+          "error"
+        ],
+        "title": "JobStatus"
+      },
+      "MediaData": {
         "properties": {
-          "fileName": {
+          "mediaId": {
+            "type": "string",
+            "title": "Mediaid"
+          },
+          "source": {
+            "$ref": "#/components/schemas/MediaSource"
+          },
+          "url": {
+            "type": "string",
+            "title": "Url"
+          },
+          "modality": {
+            "$ref": "#/components/schemas/MediaModality"
+          },
+          "contentType": {
+            "type": "string",
+            "title": "Contenttype"
+          },
+          "metadata": {
+            "$ref": "#/components/schemas/MediaMetadata"
+          },
+          "generationMetadata": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ImageGenerationMetadata"
+              },
+              {
+                "$ref": "#/components/schemas/VideoGenerationMetadata"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Generationmetadata"
+          },
+          "jobId": {
             "anyOf": [
               {
                 "type": "string"
@@ -689,53 +1142,9 @@
                 "type": "null"
               }
             ],
-            "title": "Filename"
+            "title": "Jobid"
           },
-          "size": {
-            "anyOf": [
-              {
-                "type": "integer"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Size"
-          },
-          "width": {
-            "anyOf": [
-              {
-                "type": "integer"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Width"
-          },
-          "height": {
-            "anyOf": [
-              {
-                "type": "integer"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Height"
-          },
-          "durationMs": {
-            "anyOf": [
-              {
-                "type": "integer"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Durationms"
-          },
-          "validationState": {
+          "lastFrameMediaId": {
             "anyOf": [
               {
                 "type": "string"
@@ -744,80 +1153,159 @@
                 "type": "null"
               }
             ],
-            "title": "Validationstate"
+            "title": "Lastframemediaid"
           },
-          "validationError": {
+          "isFavorite": {
+            "type": "boolean",
+            "title": "Isfavorite",
+            "default": false
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Createdat"
+          },
+          "updatedAt": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Updatedat"
+          }
+        },
+        "type": "object",
+        "required": [
+          "mediaId",
+          "source",
+          "url",
+          "modality",
+          "contentType",
+          "createdAt",
+          "updatedAt"
+        ],
+        "title": "MediaData"
+      },
+      "VideoGenerationRequest": {
+        "properties": {
+          "prompt": {
+            "type": "string",
+            "maxLength": 8000,
+            "title": "Prompt",
+            "default": ""
+          },
+          "model_id": {
+            "type": "string",
+            "maxLength": 100,
+            "minLength": 1,
+            "title": "Model Id"
+          },
+          "duration": {
             "anyOf": [
               {
-                "type": "string"
+                "type": "integer",
+                "maximum": 120.0,
+                "exclusiveMinimum": 0.0
+              },
+              {
+                "type": "integer",
+                "const": -1
+              }
+            ],
+            "title": "Duration",
+            "default": 5
+          },
+          "resolution": {
+            "type": "string",
+            "maxLength": 20,
+            "minLength": 1,
+            "title": "Resolution",
+            "default": "720p"
+          },
+          "aspect_ratio": {
+            "type": "string",
+            "maxLength": 10,
+            "minLength": 1,
+            "title": "Aspect Ratio",
+            "default": "16:9"
+          },
+          "enable_audio": {
+            "type": "boolean",
+            "title": "Enable Audio",
+            "default": false
+          },
+          "extend_video": {
+            "type": "boolean",
+            "title": "Extend Video",
+            "default": false
+          },
+          "extend_direction": {
+            "type": "string",
+            "enum": [
+              "forward",
+              "backward"
+            ],
+            "title": "Extend Direction",
+            "default": "backward"
+          },
+          "seed": {
+            "anyOf": [
+              {
+                "type": "integer"
               },
               {
                 "type": "null"
               }
             ],
-            "title": "Validationerror"
+            "title": "Seed"
+          },
+          "character_orientation": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 10
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Character Orientation"
+          },
+          "keep_reference_audio": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Keep Reference Audio"
+          },
+          "inputs": {
+            "items": {
+              "$ref": "#/components/schemas/VideoJobInput"
+            },
+            "type": "array",
+            "maxItems": 50,
+            "title": "Inputs"
+          },
+          "metadata": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Metadata"
           }
         },
         "additionalProperties": false,
         "type": "object",
-        "title": "MediaMetadata"
-      },
-      "JobCreateResponse": {
-        "properties": {
-          "job_id": {
-            "type": "string",
-            "title": "Job Id"
-          },
-          "status": {
-            "$ref": "#/components/schemas/JobStatus"
-          }
-        },
-        "type": "object",
         "required": [
-          "job_id",
-          "status"
+          "model_id"
         ],
-        "title": "JobCreateResponse"
-      },
-      "ValidationError": {
-        "properties": {
-          "loc": {
-            "items": {
-              "anyOf": [
-                {
-                  "type": "string"
-                },
-                {
-                  "type": "integer"
-                }
-              ]
-            },
-            "type": "array",
-            "title": "Location"
-          },
-          "msg": {
-            "type": "string",
-            "title": "Message"
-          },
-          "type": {
-            "type": "string",
-            "title": "Error Type"
-          },
-          "input": {
-            "title": "Input"
-          },
-          "ctx": {
-            "type": "object",
-            "title": "Context"
-          }
-        },
-        "type": "object",
-        "required": [
-          "loc",
-          "msg",
-          "type"
-        ],
-        "title": "ValidationError"
+        "title": "VideoGenerationRequest"
       },
       "VideoGenerationCostRequest": {
         "properties": {
@@ -944,17 +1432,70 @@
         "title": "VideoGenerationCostRequest",
         "description": "Cost-preflight variant of VideoGenerationRequest: the prompt does not\naffect the price, so the prompt-required rule does not apply here."
       },
-      "JobType": {
+      "ValidationError": {
+        "properties": {
+          "loc": {
+            "items": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "integer"
+                }
+              ]
+            },
+            "type": "array",
+            "title": "Location"
+          },
+          "msg": {
+            "type": "string",
+            "title": "Message"
+          },
+          "type": {
+            "type": "string",
+            "title": "Error Type"
+          },
+          "input": {
+            "title": "Input"
+          },
+          "ctx": {
+            "type": "object",
+            "title": "Context"
+          }
+        },
+        "type": "object",
+        "required": [
+          "loc",
+          "msg",
+          "type"
+        ],
+        "title": "ValidationError"
+      },
+      "MediaSource": {
         "type": "string",
         "enum": [
-          "IMAGE",
-          "VIDEO",
-          "IMAGE_PRESET",
-          "VIDEO_PRESET",
-          "ASSET_PROCESSING",
-          "UPSCALE"
+          "uploaded",
+          "generated"
         ],
-        "title": "JobType"
+        "title": "MediaSource"
+      },
+      "GenerationModelCatalogResponse": {
+        "properties": {
+          "models": {
+            "items": {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            "type": "array",
+            "title": "Models"
+          }
+        },
+        "type": "object",
+        "required": [
+          "models"
+        ],
+        "title": "GenerationModelCatalogResponse"
       },
       "ImageGenerationCostRequest": {
         "properties": {
@@ -1035,503 +1576,6 @@
         ],
         "title": "ImageGenerationCostRequest",
         "description": "Cost-preflight variant of ImageGenerationRequest. The prompt does not\naffect the price and the preview is fetched before the user types, so it is\noptional here (the generation request still requires it)."
-      },
-      "JobRecord": {
-        "properties": {
-          "job_id": {
-            "type": "string",
-            "title": "Job Id"
-          },
-          "job_type": {
-            "$ref": "#/components/schemas/JobType"
-          },
-          "status": {
-            "$ref": "#/components/schemas/JobStatus"
-          },
-          "error_code": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Error Code"
-          },
-          "error_message": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Error Message"
-          },
-          "payload": {
-            "anyOf": [
-              {
-                "additionalProperties": true,
-                "type": "object"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Payload"
-          },
-          "created_at": {
-            "type": "string",
-            "format": "date-time",
-            "title": "Created At"
-          },
-          "last_updated_at": {
-            "type": "string",
-            "format": "date-time",
-            "title": "Last Updated At"
-          },
-          "outputs": {
-            "items": {
-              "$ref": "#/components/schemas/MediaData"
-            },
-            "type": "array",
-            "title": "Outputs"
-          }
-        },
-        "type": "object",
-        "required": [
-          "job_id",
-          "job_type",
-          "status",
-          "created_at",
-          "last_updated_at"
-        ],
-        "title": "JobRecord"
-      },
-      "VideoJobInput": {
-        "properties": {
-          "type": {
-            "$ref": "#/components/schemas/VideoInputType"
-          },
-          "media_id": {
-            "anyOf": [
-              {
-                "type": "string",
-                "maxLength": 36,
-                "minLength": 1
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Media Id"
-          },
-          "image_url": {
-            "anyOf": [
-              {
-                "type": "string",
-                "maxLength": 2083,
-                "minLength": 1,
-                "format": "uri"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Image Url"
-          },
-          "image_bytes": {
-            "anyOf": [
-              {
-                "type": "string",
-                "maxLength": 13982037
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Image Bytes"
-          },
-          "video_url": {
-            "anyOf": [
-              {
-                "type": "string",
-                "maxLength": 2083,
-                "minLength": 1,
-                "format": "uri"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Video Url"
-          },
-          "audio_url": {
-            "anyOf": [
-              {
-                "type": "string",
-                "maxLength": 2083,
-                "minLength": 1,
-                "format": "uri"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Audio Url"
-          },
-          "content_type": {
-            "anyOf": [
-              {
-                "type": "string",
-                "maxLength": 128
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Content Type"
-          },
-          "file_name": {
-            "anyOf": [
-              {
-                "type": "string",
-                "maxLength": 512
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "File Name"
-          },
-          "attributes": {
-            "anyOf": [
-              {
-                "additionalProperties": true,
-                "type": "object"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Attributes"
-          }
-        },
-        "additionalProperties": false,
-        "type": "object",
-        "required": [
-          "type"
-        ],
-        "title": "VideoJobInput"
-      },
-      "MediaModality": {
-        "type": "string",
-        "enum": [
-          "image",
-          "video",
-          "audio"
-        ],
-        "title": "MediaModality"
-      },
-      "HTTPValidationError": {
-        "properties": {
-          "detail": {
-            "items": {
-              "$ref": "#/components/schemas/ValidationError"
-            },
-            "type": "array",
-            "title": "Detail"
-          }
-        },
-        "type": "object",
-        "title": "HTTPValidationError"
-      },
-      "JobStatus": {
-        "type": "string",
-        "enum": [
-          "pending",
-          "processing",
-          "completed",
-          "error"
-        ],
-        "title": "JobStatus"
-      },
-      "ReferenceImage": {
-        "properties": {
-          "media_id": {
-            "anyOf": [
-              {
-                "type": "string",
-                "maxLength": 36,
-                "minLength": 1
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Media Id"
-          },
-          "image_url": {
-            "anyOf": [
-              {
-                "type": "string",
-                "maxLength": 2083,
-                "minLength": 1,
-                "format": "uri"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Image Url"
-          },
-          "image_bytes": {
-            "anyOf": [
-              {
-                "type": "string",
-                "maxLength": 13982037
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Image Bytes"
-          },
-          "content_type": {
-            "anyOf": [
-              {
-                "type": "string",
-                "maxLength": 128
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Content Type"
-          },
-          "file_name": {
-            "anyOf": [
-              {
-                "type": "string",
-                "maxLength": 512
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "File Name"
-          }
-        },
-        "additionalProperties": false,
-        "type": "object",
-        "title": "ReferenceImage"
-      },
-      "ImageGenerationRequest": {
-        "properties": {
-          "prompt": {
-            "type": "string",
-            "maxLength": 8000,
-            "minLength": 1,
-            "title": "Prompt"
-          },
-          "model_id": {
-            "type": "string",
-            "maxLength": 100,
-            "minLength": 1,
-            "title": "Model Id"
-          },
-          "num_outputs": {
-            "type": "integer",
-            "maximum": 1.0,
-            "minimum": 1.0,
-            "title": "Num Outputs",
-            "default": 1
-          },
-          "quality": {
-            "type": "string",
-            "enum": [
-              "512p",
-              "1K",
-              "1.5K",
-              "2K",
-              "4K"
-            ],
-            "title": "Quality",
-            "default": "1K"
-          },
-          "aspect_ratio": {
-            "type": "string",
-            "maxLength": 10,
-            "minLength": 1,
-            "title": "Aspect Ratio",
-            "default": "auto"
-          },
-          "references": {
-            "items": {
-              "$ref": "#/components/schemas/ReferenceImage"
-            },
-            "type": "array",
-            "maxItems": 50,
-            "title": "References"
-          },
-          "seed": {
-            "anyOf": [
-              {
-                "type": "integer"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Seed"
-          },
-          "metadata": {
-            "anyOf": [
-              {
-                "additionalProperties": true,
-                "type": "object"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Metadata"
-          }
-        },
-        "additionalProperties": false,
-        "type": "object",
-        "required": [
-          "prompt",
-          "model_id"
-        ],
-        "title": "ImageGenerationRequest"
-      },
-      "ImageGenerationMetadata": {
-        "properties": {
-          "prompt": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Prompt"
-          },
-          "modelId": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Modelid"
-          },
-          "presetId": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Presetid"
-          },
-          "presetVersion": {
-            "anyOf": [
-              {
-                "type": "integer"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Presetversion"
-          },
-          "quality": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Quality"
-          },
-          "aspectRatio": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Aspectratio"
-          },
-          "seed": {
-            "anyOf": [
-              {
-                "type": "integer"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Seed"
-          },
-          "references": {
-            "items": {
-              "additionalProperties": true,
-              "type": "object"
-            },
-            "type": "array",
-            "title": "References"
-          },
-          "inputs": {
-            "items": {
-              "additionalProperties": true,
-              "type": "object"
-            },
-            "type": "array",
-            "title": "Inputs"
-          }
-        },
-        "additionalProperties": false,
-        "type": "object",
-        "title": "ImageGenerationMetadata"
-      },
-      "MediaSource": {
-        "type": "string",
-        "enum": [
-          "uploaded",
-          "generated"
-        ],
-        "title": "MediaSource"
-      },
-      "GenerationModelCatalogResponse": {
-        "properties": {
-          "models": {
-            "items": {
-              "additionalProperties": true,
-              "type": "object"
-            },
-            "type": "array",
-            "title": "Models"
-          }
-        },
-        "type": "object",
-        "required": [
-          "models"
-        ],
-        "title": "GenerationModelCatalogResponse"
       }
     }
   }

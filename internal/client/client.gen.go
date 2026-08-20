@@ -278,6 +278,13 @@ func (e VideoInputType) Valid() bool {
 	}
 }
 
+// CreditBalanceResponse defines model for CreditBalanceResponse.
+type CreditBalanceResponse struct {
+	OtherCredits        int `json:"other_credits"`
+	SubscriptionCredits int `json:"subscription_credits"`
+	TotalCredits        int `json:"total_credits"`
+}
+
 // GenerationCostResponse defines model for GenerationCostResponse.
 type GenerationCostResponse struct {
 	Credits     int     `json:"credits"`
@@ -876,6 +883,11 @@ func WithRequestEditorFn(fn RequestEditorFn) ClientOption {
 // The interface specification for the client above.
 type ClientInterface interface {
 
+	// GetCreditsV1CreditsGet Get Credits
+	//
+	// Corresponds with GET /v1/credits (the `GetCreditsV1CreditsGet` operationId).
+	GetCreditsV1CreditsGet(ctx context.Context, reqEditors ...RequestEditorFn) (*http.Response, error)
+
 	// GetImageGenerationCostV1GenerationImageCostPostWithBody Get Image Generation Cost
 	//
 	// Takes any type of body and a specified content type.
@@ -941,6 +953,21 @@ type ClientInterface interface {
 	//
 	// Corresponds with POST /v1/video (the `CreateVideoJobV1VideoPost` operationId).
 	CreateVideoJobV1VideoPost(ctx context.Context, body CreateVideoJobV1VideoPostJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
+}
+
+// GetCreditsV1CreditsGet Get Credits
+//
+// Corresponds with GET /v1/credits (the `GetCreditsV1CreditsGet` operationId).
+func (c *Client) GetCreditsV1CreditsGet(ctx context.Context, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewGetCreditsV1CreditsGetRequest(c.Server)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
 }
 
 // GetImageGenerationCostV1GenerationImageCostPostWithBody Get Image Generation Cost
@@ -1107,6 +1134,33 @@ func (c *Client) CreateVideoJobV1VideoPost(ctx context.Context, body CreateVideo
 		return nil, err
 	}
 	return c.Client.Do(req)
+}
+
+// NewGetCreditsV1CreditsGetRequest constructs an http.Request for the GetCreditsV1CreditsGet method
+func NewGetCreditsV1CreditsGetRequest(server string) (*http.Request, error) {
+	var err error
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/v1/credits")
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest(http.MethodGet, queryURL.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return req, nil
 }
 
 // NewGetImageGenerationCostV1GenerationImageCostPostRequest calls the generic GetImageGenerationCostV1GenerationImageCostPost builder with application/json body
@@ -1428,6 +1482,13 @@ func WithBaseURL(baseURL string) ClientOption {
 // ClientWithResponsesInterface is the interface specification for the client with responses above.
 type ClientWithResponsesInterface interface {
 
+	// GetCreditsV1CreditsGetWithResponse Get Credits
+	//
+	// Returns a wrapper object for the known response body format(s).
+	//
+	// Corresponds with GET /v1/credits (the `GetCreditsV1CreditsGet` operationId).
+	GetCreditsV1CreditsGetWithResponse(ctx context.Context, reqEditors ...RequestEditorFn) (*GetCreditsV1CreditsGetResponse, error)
+
 	// GetImageGenerationCostV1GenerationImageCostPostWithBodyWithResponse Get Image Generation Cost
 	//
 	// Takes any type of body and a specified content type, and returns a wrapper object for the known response body format(s).
@@ -1497,6 +1558,47 @@ type ClientWithResponsesInterface interface {
 	//
 	// Corresponds with POST /v1/video (the `CreateVideoJobV1VideoPost` operationId).
 	CreateVideoJobV1VideoPostWithResponse(ctx context.Context, body CreateVideoJobV1VideoPostJSONRequestBody, reqEditors ...RequestEditorFn) (*CreateVideoJobV1VideoPostResponse, error)
+}
+
+type GetCreditsV1CreditsGetResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	// JSON200 the response for an HTTP 200 `application/json` response
+	JSON200 *CreditBalanceResponse
+}
+
+// GetJSON200 returns the response for an HTTP 200 `application/json` response
+func (r GetCreditsV1CreditsGetResponse) GetJSON200() *CreditBalanceResponse {
+	return r.JSON200
+}
+
+// GetBody returns the raw response body bytes
+func (r GetCreditsV1CreditsGetResponse) GetBody() []byte {
+	return r.Body
+}
+
+// Status returns HTTPResponse.Status
+func (r GetCreditsV1CreditsGetResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r GetCreditsV1CreditsGetResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+// ContentType is a convenience method to retrieve the Content-Type value from the HTTP response headers
+func (r GetCreditsV1CreditsGetResponse) ContentType() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Header.Get("Content-Type")
+	}
+	return ""
 }
 
 type GetImageGenerationCostV1GenerationImageCostPostResponse struct {
@@ -1787,6 +1889,19 @@ func (r CreateVideoJobV1VideoPostResponse) ContentType() string {
 	return ""
 }
 
+// GetCreditsV1CreditsGetWithResponse Get Credits
+//
+// Returns a wrapper object for the known response body format(s).
+//
+// Corresponds with GET /v1/credits (the `GetCreditsV1CreditsGet` operationId).
+func (c *ClientWithResponses) GetCreditsV1CreditsGetWithResponse(ctx context.Context, reqEditors ...RequestEditorFn) (*GetCreditsV1CreditsGetResponse, error) {
+	rsp, err := c.GetCreditsV1CreditsGet(ctx, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseGetCreditsV1CreditsGetResponse(rsp)
+}
+
 // GetImageGenerationCostV1GenerationImageCostPostWithBodyWithResponse Get Image Generation Cost
 //
 // Takes any type of body and a specified content type, and returns a wrapper object for the known response body format(s).
@@ -1915,6 +2030,32 @@ func (c *ClientWithResponses) CreateVideoJobV1VideoPostWithResponse(ctx context.
 		return nil, err
 	}
 	return ParseCreateVideoJobV1VideoPostResponse(rsp)
+}
+
+// ParseGetCreditsV1CreditsGetResponse parses an HTTP response from a GetCreditsV1CreditsGetWithResponse call
+func ParseGetCreditsV1CreditsGetResponse(rsp *http.Response) (*GetCreditsV1CreditsGetResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &GetCreditsV1CreditsGetResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest CreditBalanceResponse
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	}
+
+	return response, nil
 }
 
 // ParseGetImageGenerationCostV1GenerationImageCostPostResponse parses an HTTP response from a GetImageGenerationCostV1GenerationImageCostPostWithResponse call
