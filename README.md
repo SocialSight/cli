@@ -31,7 +31,7 @@ Run `socialsight --help` for the full command list.
 
 ## Development
 
-Requires Go 1.24+.
+Requires Go 1.25+.
 
 ```bash
 go build -o socialsight ./cmd/socialsight

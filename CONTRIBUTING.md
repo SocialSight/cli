@@ -26,4 +26,15 @@ go build -o socialsight ./cmd/socialsight
 
 - `cmd/socialsight/` — main package / entrypoint
 - `internal/cli/` — command definitions (cobra)
-- `internal/client/` — generated/hand-written client for the SocialSight API
+- `internal/client/` — generated client for the SocialSight API (`client.gen.go`), plus hand-written helpers
+- `openapi/socialsight.json` — the subset of SocialSight's public OpenAPI spec (`GET /openapi.json` on `services/api`) this CLI's client is generated from
+
+## Regenerating the API client
+
+After `openapi/socialsight.json` changes (or to pick up new endpoints), re-run:
+
+```bash
+go generate ./...
+```
+
+This runs `oapi-codegen` (tracked as a `tool` dependency in `go.mod`, no separate install needed) and rewrites `internal/client/client.gen.go`.
