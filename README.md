@@ -2,7 +2,7 @@
 
 Command-line tool for generating images and videos with [SocialSight](https://socialsight.ai) models.
 
-> **Status:** all v1 commands work end-to-end (ENG-261). Installers (curl/brew/npm) are still pending.
+> **Status:** all v1 commands work end-to-end (ENG-261). The release pipeline (cross-platform builds via GoReleaser) is wired up, but no release has been tagged yet, and the curl/brew/npm installers below aren't wired up yet either -- see [CONTRIBUTING.md](CONTRIBUTING.md#cutting-a-release).
 
 ## Install
 

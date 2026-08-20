@@ -1,0 +1,51 @@
+version: 2
+
+before:
+  hooks:
+    - go mod tidy
+
+builds:
+  - id: socialsight
+    main: ./cmd/socialsight
+    binary: socialsight
+    env:
+      - CGO_ENABLED=0
+    goos:
+      - darwin
+      - linux
+      - windows
+    goarch:
+      - amd64
+      - arm64
+    ldflags:
+      - -s -w
+      - -X github.com/SocialSight/cli/internal/cli.version={{.Version}}
+      - -X github.com/SocialSight/cli/internal/cli.commit={{.Commit}}
+      - -X github.com/SocialSight/cli/internal/cli.date={{.Date}}
+
+archives:
+  - id: socialsight
+    formats: [tar.gz]
+    format_overrides:
+      - goos: windows
+        formats: [zip]
+    name_template: >-
+      {{ .Binary }}_{{ .Version }}_{{ .Os }}_{{ .Arch }}
+    files:
+      - LICENSE
+      - README.md
+
+checksum:
+  name_template: checksums.txt
+
+changelog:
+  sort: asc
+  filters:
+    exclude:
+      - "^test:"
+      - "^ci:"
+
+release:
+  github:
+    owner: SocialSight
+    name: cli
