@@ -2,10 +2,12 @@ package cli
 
 import (
 	"encoding/json"
+	"fmt"
 	"io"
 	"net/http"
 	"net/http/httptest"
 	"strings"
+	"sync/atomic"
 	"testing"
 
 	"github.com/SocialSight/cli/internal/config"
@@ -156,5 +158,122 @@ func TestJobsGetAndWait(t *testing.T) {
 	}
 	if !strings.Contains(out, "completed") {
 		t.Fatalf("unexpected jobs wait output: %s", out)
+	}
+}
+
+func TestJobsWaitPollsUntilCompleted(t *testing.T) {
+	var calls atomic.Int32
+
+	setupAuthedCLI(t, func(w http.ResponseWriter, r *http.Request) {
+		requireAuthHeader(t, r)
+		if r.URL.Path != "/v1/jobs/job-poll" {
+			http.NotFound(w, r)
+			return
+		}
+		status := "completed"
+		if calls.Add(1) < 3 {
+			status = "processing"
+		}
+		w.Header().Set("Content-Type", "application/json")
+		fmt.Fprintf(w, `{
+			"job_id": "job-poll", "job_type": "IMAGE", "status": %q,
+			"created_at": "2026-01-01T00:00:00Z", "last_updated_at": "2026-01-01T00:00:00Z"
+		}`, status)
+	})
+
+	out, err := run(t, "jobs", "wait", "job-poll", "--wait-interval", "5ms", "--wait-timeout", "2s")
+	if err != nil {
+		t.Fatalf("jobs wait: %v", err)
+	}
+	if !strings.Contains(out, "completed") {
+		t.Fatalf("unexpected output: %s", out)
+	}
+	if got := calls.Load(); got != 3 {
+		t.Fatalf("expected 3 polls, got %d", got)
+	}
+}
+
+func TestJobsWaitTimesOut(t *testing.T) {
+	setupAuthedCLI(t, func(w http.ResponseWriter, r *http.Request) {
+		requireAuthHeader(t, r)
+		w.Header().Set("Content-Type", "application/json")
+		w.Write([]byte(`{
+			"job_id": "job-stuck", "job_type": "IMAGE", "status": "processing",
+			"created_at": "2026-01-01T00:00:00Z", "last_updated_at": "2026-01-01T00:00:00Z"
+		}`))
+	})
+
+	_, err := run(t, "jobs", "wait", "job-stuck", "--wait-interval", "5ms", "--wait-timeout", "30ms")
+	if err == nil || !strings.Contains(err.Error(), "timed out") {
+		t.Fatalf("got %v, want a timeout error", err)
+	}
+}
+
+func TestGenerateImageWaitPollsToCompletion(t *testing.T) {
+	setupAuthedCLI(t, func(w http.ResponseWriter, r *http.Request) {
+		requireAuthHeader(t, r)
+		w.Header().Set("Content-Type", "application/json")
+		switch r.URL.Path {
+		case "/v1/image":
+			w.WriteHeader(http.StatusAccepted)
+			w.Write([]byte(`{"job_id": "job-wait", "status": "pending"}`))
+		case "/v1/jobs/job-wait":
+			w.Write([]byte(`{
+				"job_id": "job-wait", "job_type": "IMAGE", "status": "completed",
+				"created_at": "2026-01-01T00:00:00Z", "last_updated_at": "2026-01-01T00:00:00Z",
+				"outputs": [{"mediaId": "m1", "source": "generated", "url": "https://example.com/out.png",
+				             "modality": "image", "contentType": "image/png",
+				             "createdAt": "2026-01-01T00:00:00Z", "updatedAt": "2026-01-01T00:00:00Z"}]
+			}`))
+		default:
+			http.NotFound(w, r)
+		}
+	})
+
+	out, err := run(t, "generate", "image", "--model", "M", "--prompt", "a duck", "--wait", "--wait-interval", "5ms")
+	if err != nil {
+		t.Fatalf("generate image --wait: %v", err)
+	}
+	if !strings.Contains(out, "completed") || !strings.Contains(out, "https://example.com/out.png") {
+		t.Fatalf("unexpected output: %s", out)
+	}
+}
+
+func TestJSONOutputMode(t *testing.T) {
+	setupAuthedCLI(t, func(w http.ResponseWriter, r *http.Request) {
+		requireAuthHeader(t, r)
+		w.Header().Set("Content-Type", "application/json")
+		switch r.URL.Path {
+		case "/v1/models/generation":
+			w.Write([]byte(`{"models": [{"id": "M1", "modality": "image"}]}`))
+		case "/v1/generation/image/cost":
+			w.Write([]byte(`{"credits": 42, "modelId": "M1", "jobType": "IMAGE"}`))
+		default:
+			http.NotFound(w, r)
+		}
+	})
+
+	out, err := run(t, "--json", "model", "list")
+	if err != nil {
+		t.Fatalf("model list --json: %v", err)
+	}
+	var models []map[string]interface{}
+	if err := json.Unmarshal([]byte(out), &models); err != nil {
+		t.Fatalf("model list --json did not produce valid JSON: %v\noutput: %s", err, out)
+	}
+	if len(models) != 1 || models[0]["id"] != "M1" {
+		t.Fatalf("unexpected decoded models: %+v", models)
+	}
+
+	out, err = run(t, "--json", "generate", "cost", "image", "--model", "M1")
+	if err != nil {
+		t.Fatalf("generate cost image --json: %v", err)
+	}
+	var cost map[string]interface{}
+	if err := json.Unmarshal([]byte(out), &cost); err != nil {
+		t.Fatalf("generate cost --json did not produce valid JSON: %v\noutput: %s", err, out)
+	}
+	if cost["credits"].(float64) != 42 {
+		t.Fatalf("unexpected decoded cost: %+v", cost)
 	}
 }

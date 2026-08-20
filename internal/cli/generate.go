@@ -2,6 +2,7 @@ package cli
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"time"
 
@@ -9,6 +10,52 @@ import (
 
 	"github.com/SocialSight/cli/internal/client"
 )
+
+// waitOpts holds the --wait/--wait-interval/--wait-timeout flags shared by
+// `generate image` and `generate video`.
+type waitOpts struct {
+	wait     bool
+	interval time.Duration
+	timeout  time.Duration
+}
+
+func registerGenerateWaitFlags(cmd *cobra.Command) *waitOpts {
+	w := &waitOpts{}
+	cmd.Flags().BoolVar(&w.wait, "wait", false, "wait for the job to finish before exiting")
+	registerWaitTimingFlags(cmd, &w.interval, &w.timeout)
+	return w
+}
+
+// handleJobCreated prints the just-created job, or -- if w.wait -- polls it
+// to completion (with a spinner) and prints the final result instead.
+func handleJobCreated(cmd *cobra.Command, c *client.ClientWithResponses, job *client.JobCreateResponse, w *waitOpts) error {
+	if !w.wait {
+		if wantsJSON(cmd) {
+			return printJSON(cmd, job)
+		}
+		fmt.Fprintf(cmd.OutOrStdout(), "Job created: %s (status: %s)\n", job.JobId, job.Status)
+		fmt.Fprintf(cmd.OutOrStdout(), "Run `socialsight jobs get %s` to check on it.\n", job.JobId)
+		return nil
+	}
+
+	ctx, cancel := context.WithTimeout(cmd.Context(), w.timeout)
+	defer cancel()
+
+	stop := startSpinner(cmd, fmt.Sprintf("waiting for job %s", job.JobId))
+	record, err := waitForJob(ctx, c, job.JobId, w.interval)
+	stop()
+	if err != nil {
+		return err
+	}
+
+	if err := outputJob(cmd, record); err != nil {
+		return err
+	}
+	if record.Status == client.Error {
+		return errors.New("job failed")
+	}
+	return nil
+}
 
 type imageFlags struct {
 	model       string
@@ -172,33 +219,34 @@ func newGenerateImageCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "image",
 		Short: "Create an image generation job",
-		RunE: func(cmd *cobra.Command, args []string) error {
-			if f.prompt == "" {
-				return fmt.Errorf("--prompt is required")
-			}
-			c, err := requireClient()
-			if err != nil {
-				return err
-			}
-
-			ctx, cancel := context.WithTimeout(cmd.Context(), 30*time.Second)
-			defer cancel()
-
-			resp, err := c.CreateImageJobV1ImagePostWithResponse(ctx, f.toGenerationRequest(cmd))
-			if err != nil {
-				return err
-			}
-			if resp.JSON422 != nil {
-				return validationError(resp.JSON422)
-			}
-			if resp.JSON202 == nil {
-				return fmt.Errorf("unexpected response (%s): %s", resp.Status(), string(resp.Body))
-			}
-			return printJobCreated(cmd, resp.JSON202)
-		},
 	}
 	registerImageFlags(cmd, &f)
 	_ = cmd.MarkFlagRequired("prompt")
+	w := registerGenerateWaitFlags(cmd)
+
+	cmd.RunE = func(cmd *cobra.Command, args []string) error {
+		if f.prompt == "" {
+			return fmt.Errorf("--prompt is required")
+		}
+		c, err := requireClient()
+		if err != nil {
+			return err
+		}
+
+		ctx, cancel := context.WithTimeout(cmd.Context(), 30*time.Second)
+		resp, err := c.CreateImageJobV1ImagePostWithResponse(ctx, f.toGenerationRequest(cmd))
+		cancel()
+		if err != nil {
+			return err
+		}
+		if resp.JSON422 != nil {
+			return validationError(resp.JSON422)
+		}
+		if resp.JSON202 == nil {
+			return fmt.Errorf("unexpected response (%s): %s", resp.Status(), string(resp.Body))
+		}
+		return handleJobCreated(cmd, c, resp.JSON202, w)
+	}
 	return cmd
 }
 
@@ -208,34 +256,35 @@ func newGenerateVideoCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "video",
 		Short: "Create a video generation job",
-		RunE: func(cmd *cobra.Command, args []string) error {
-			c, err := requireClient()
-			if err != nil {
-				return err
-			}
-
-			req, err := f.toGenerationRequest(cmd)
-			if err != nil {
-				return err
-			}
-
-			ctx, cancel := context.WithTimeout(cmd.Context(), 30*time.Second)
-			defer cancel()
-
-			resp, err := c.CreateVideoJobV1VideoPostWithResponse(ctx, req)
-			if err != nil {
-				return err
-			}
-			if resp.JSON422 != nil {
-				return validationError(resp.JSON422)
-			}
-			if resp.JSON202 == nil {
-				return fmt.Errorf("unexpected response (%s): %s", resp.Status(), string(resp.Body))
-			}
-			return printJobCreated(cmd, resp.JSON202)
-		},
 	}
 	registerVideoFlags(cmd, &f)
+	w := registerGenerateWaitFlags(cmd)
+
+	cmd.RunE = func(cmd *cobra.Command, args []string) error {
+		c, err := requireClient()
+		if err != nil {
+			return err
+		}
+
+		req, err := f.toGenerationRequest(cmd)
+		if err != nil {
+			return err
+		}
+
+		ctx, cancel := context.WithTimeout(cmd.Context(), 30*time.Second)
+		resp, err := c.CreateVideoJobV1VideoPostWithResponse(ctx, req)
+		cancel()
+		if err != nil {
+			return err
+		}
+		if resp.JSON422 != nil {
+			return validationError(resp.JSON422)
+		}
+		if resp.JSON202 == nil {
+			return fmt.Errorf("unexpected response (%s): %s", resp.Status(), string(resp.Body))
+		}
+		return handleJobCreated(cmd, c, resp.JSON202, w)
+	}
 	return cmd
 }
 
@@ -274,8 +323,7 @@ func newGenerateCostImageCmd() *cobra.Command {
 			if resp.JSON200 == nil {
 				return fmt.Errorf("unexpected response (%s): %s", resp.Status(), string(resp.Body))
 			}
-			fmt.Fprintf(cmd.OutOrStdout(), "Estimated cost: %d credits\n", resp.JSON200.Credits)
-			return nil
+			return outputCost(cmd, resp.JSON200)
 		},
 	}
 	registerImageFlags(cmd, &f)
@@ -312,16 +360,17 @@ func newGenerateCostVideoCmd() *cobra.Command {
 			if resp.JSON200 == nil {
 				return fmt.Errorf("unexpected response (%s): %s", resp.Status(), string(resp.Body))
 			}
-			fmt.Fprintf(cmd.OutOrStdout(), "Estimated cost: %d credits\n", resp.JSON200.Credits)
-			return nil
+			return outputCost(cmd, resp.JSON200)
 		},
 	}
 	registerVideoFlags(cmd, &f)
 	return cmd
 }
 
-func printJobCreated(cmd *cobra.Command, job *client.JobCreateResponse) error {
-	fmt.Fprintf(cmd.OutOrStdout(), "Job created: %s (status: %s)\n", job.JobId, job.Status)
-	fmt.Fprintf(cmd.OutOrStdout(), "Run `socialsight jobs get %s` to check on it.\n", job.JobId)
+func outputCost(cmd *cobra.Command, cost *client.GenerationCostResponse) error {
+	if wantsJSON(cmd) {
+		return printJSON(cmd, cost)
+	}
+	fmt.Fprintf(cmd.OutOrStdout(), "Estimated cost: %d credits\n", cost.Credits)
 	return nil
 }

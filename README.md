@@ -2,7 +2,7 @@
 
 Command-line tool for generating images and videos with [SocialSight](https://socialsight.ai) models.
 
-> **Status:** core v1 commands work end-to-end (ENG-261). `--wait`/`--json` flags and installers (curl/brew/npm) are still pending.
+> **Status:** all v1 commands work end-to-end (ENG-261). Installers (curl/brew/npm) are still pending.
 
 ## Install
 
@@ -27,17 +27,24 @@ socialsight auth logout
 socialsight model list [--type image|video]
 socialsight model info <model_id>
 
-socialsight generate image --model <id> --prompt "..." [--aspect-ratio ...] [--quality ...]
-socialsight generate video --model <id> --prompt "..." [--duration ...] [--resolution ...]
+socialsight generate image --model <id> --prompt "..." [--aspect-ratio ...] [--quality ...] [--wait]
+socialsight generate video --model <id> --prompt "..." [--duration ...] [--resolution ...] [--wait]
 socialsight generate cost image --model <id> ...   # preview credit cost before running
 socialsight generate cost video --model <id> ...
 
 socialsight jobs get <job_id>
-socialsight jobs wait <job_id>   # polls until completed/error (fixed interval for now)
+socialsight jobs wait <job_id>
 ```
 
 The API key comes from the SocialSight web dashboard. It's saved to
 `~/.socialsight/config`; set `SOCIALSIGHT_API_KEY` to override it (e.g. in CI).
+
+Add `--wait` to `generate image`/`generate video` to block until the job
+finishes instead of just printing its ID (shows a spinner on an interactive
+terminal); `jobs wait` does the same for a job you already have the ID for.
+Both accept `--wait-interval`/`--wait-timeout` to override the 3s/10m
+defaults. Add the global `--json` flag to any command for machine-readable
+output instead of text.
 
 Run `socialsight --help` for the full command list.
 

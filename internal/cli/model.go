@@ -34,6 +34,10 @@ func newModelListCmd() *cobra.Command {
 				return err
 			}
 
+			if wantsJSON(cmd) {
+				return printJSON(cmd, models)
+			}
+
 			w := tabwriter.NewWriter(cmd.OutOrStdout(), 0, 0, 2, ' ', 0)
 			fmt.Fprintln(w, "ID\tMODALITY\tNAME")
 			for _, m := range models {
@@ -58,6 +62,9 @@ func newModelInfoCmd() *cobra.Command {
 			}
 			for _, m := range models {
 				if stringField(m, "id") == args[0] {
+					if wantsJSON(cmd) {
+						return printJSON(cmd, m)
+					}
 					printModelInfo(cmd, m)
 					return nil
 				}

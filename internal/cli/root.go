@@ -13,6 +13,8 @@ func newRootCmd() *cobra.Command {
 		SilenceErrors: true,
 	}
 
+	root.PersistentFlags().Bool("json", false, "output machine-readable JSON instead of text")
+
 	root.AddCommand(newVersionCmd())
 	root.AddCommand(newAuthCmd())
 	root.AddCommand(newModelCmd())

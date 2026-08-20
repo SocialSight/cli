@@ -2,6 +2,7 @@ package cli
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"text/tabwriter"
 	"time"
@@ -11,11 +12,11 @@ import (
 	"github.com/SocialSight/cli/internal/client"
 )
 
-// waitPollInterval and waitTimeout are fixed for now; ENG-268 makes these
-// configurable (--wait-interval/--wait-timeout) and adds a spinner.
+// defaultWaitPollInterval and defaultWaitTimeout are the --wait-interval and
+// --wait-timeout flag defaults, shared by `jobs wait` and `generate --wait`.
 const (
-	waitPollInterval = 3 * time.Second
-	waitTimeout      = 10 * time.Minute
+	defaultWaitPollInterval = 3 * time.Second
+	defaultWaitTimeout      = 10 * time.Minute
 )
 
 func newJobsCmd() *cobra.Command {
@@ -46,14 +47,15 @@ func newJobsGetCmd() *cobra.Command {
 			if err != nil {
 				return err
 			}
-			printJob(cmd, job)
-			return nil
+			return outputJob(cmd, job)
 		},
 	}
 }
 
 func newJobsWaitCmd() *cobra.Command {
-	return &cobra.Command{
+	var interval, timeout time.Duration
+
+	cmd := &cobra.Command{
 		Use:   "wait <job_id>",
 		Short: "Poll a job until it completes or fails",
 		Args:  cobra.ExactArgs(1),
@@ -63,20 +65,33 @@ func newJobsWaitCmd() *cobra.Command {
 				return err
 			}
 
-			ctx, cancel := context.WithTimeout(cmd.Context(), waitTimeout)
+			ctx, cancel := context.WithTimeout(cmd.Context(), timeout)
 			defer cancel()
 
-			job, err := waitForJob(ctx, c, args[0])
+			jobID := args[0]
+			stop := startSpinner(cmd, fmt.Sprintf("waiting for job %s", jobID))
+			job, err := waitForJob(ctx, c, jobID, interval)
+			stop()
 			if err != nil {
 				return err
 			}
-			printJob(cmd, job)
+
+			if err := outputJob(cmd, job); err != nil {
+				return err
+			}
 			if job.Status == client.Error {
-				return fmt.Errorf("job failed")
+				return errors.New("job failed")
 			}
 			return nil
 		},
 	}
+	registerWaitTimingFlags(cmd, &interval, &timeout)
+	return cmd
+}
+
+func registerWaitTimingFlags(cmd *cobra.Command, interval, timeout *time.Duration) {
+	cmd.Flags().DurationVar(interval, "wait-interval", defaultWaitPollInterval, "how often to poll while waiting")
+	cmd.Flags().DurationVar(timeout, "wait-timeout", defaultWaitTimeout, "how long to wait before giving up")
 }
 
 func getJob(ctx context.Context, c *client.ClientWithResponses, jobID string) (*client.JobRecord, error) {
@@ -93,12 +108,20 @@ func getJob(ctx context.Context, c *client.ClientWithResponses, jobID string) (*
 	return resp.JSON200, nil
 }
 
-func waitForJob(ctx context.Context, c *client.ClientWithResponses, jobID string) (*client.JobRecord, error) {
+func waitForJob(ctx context.Context, c *client.ClientWithResponses, jobID string, interval time.Duration) (*client.JobRecord, error) {
+	lastStatus := client.JobStatus("unknown")
 	for {
 		job, err := getJob(ctx, c, jobID)
 		if err != nil {
+			// The deadline can also expire mid-request, in which case the
+			// HTTP client itself returns a raw "context deadline exceeded"
+			// error rather than this loop's own select below ever firing.
+			if ctx.Err() != nil {
+				return nil, fmt.Errorf("timed out waiting for job %s (last status: %s)", jobID, lastStatus)
+			}
 			return nil, err
 		}
+		lastStatus = job.Status
 		if job.Status == client.Completed || job.Status == client.Error {
 			return job, nil
 		}
@@ -106,9 +129,17 @@ func waitForJob(ctx context.Context, c *client.ClientWithResponses, jobID string
 		select {
 		case <-ctx.Done():
 			return nil, fmt.Errorf("timed out waiting for job %s (last status: %s)", jobID, job.Status)
-		case <-time.After(waitPollInterval):
+		case <-time.After(interval):
 		}
 	}
+}
+
+func outputJob(cmd *cobra.Command, job *client.JobRecord) error {
+	if wantsJSON(cmd) {
+		return printJSON(cmd, job)
+	}
+	printJob(cmd, job)
+	return nil
 }
 
 func printJob(cmd *cobra.Command, job *client.JobRecord) {
