@@ -15,6 +15,9 @@ func newRootCmd() *cobra.Command {
 
 	root.AddCommand(newVersionCmd())
 	root.AddCommand(newAuthCmd())
+	root.AddCommand(newModelCmd())
+	root.AddCommand(newGenerateCmd())
+	root.AddCommand(newJobsCmd())
 
 	return root
 }

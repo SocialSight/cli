@@ -303,7 +303,8 @@ type GenerationModelType string
 
 // HTTPValidationError defines model for HTTPValidationError.
 type HTTPValidationError struct {
-	Detail *[]ValidationError `json:"detail,omitempty"`
+	// Detail Either a pydantic validation error array or a plain string, depending on whether the backend raised this 422 via automatic request validation or a manual HTTPException. Decoded as raw JSON and interpreted at the call site.
+	Detail *json.RawMessage `json:"detail,omitempty"`
 }
 
 // ImageGenerationCostRequest Cost-preflight variant of ImageGenerationRequest. The prompt does not

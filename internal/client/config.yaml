@@ -4,4 +4,8 @@ generate:
   models: true
   client: true
 output-options:
-  skip-prune: false
+  # ValidationError is unreferenced by any $ref (HTTPValidationError.detail is
+  # x-go-type: json.RawMessage since the backend doesn't always honor its own
+  # declared schema there -- see openapi/socialsight.json) but hand-written
+  # code still needs the generated type to decode it. Keep it generated.
+  skip-prune: true

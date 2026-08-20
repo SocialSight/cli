@@ -803,11 +803,9 @@
       "HTTPValidationError": {
         "properties": {
           "detail": {
-            "items": {
-              "$ref": "#/components/schemas/ValidationError"
-            },
-            "type": "array",
-            "title": "Detail"
+            "title": "Detail",
+            "description": "Either a pydantic validation error array or a plain string, depending on whether the backend raised this 422 via automatic request validation or a manual HTTPException. Decoded as raw JSON and interpreted at the call site.",
+            "x-go-type": "json.RawMessage"
           }
         },
         "type": "object",
