@@ -12,5 +12,11 @@ socialsight auth login
 
 Requires `tar` on `PATH` (present by default on macOS, Linux, and Windows 10+).
 
+## Publishing
+
+See the parent repo's `CONTRIBUTING.md#npm-package` and the Linear doc on
+ENG-272 for the full walkthrough, including the 2FA/granular-token step
+`npm publish` requires on a fresh account.
+
 See the main repo's [README](https://github.com/SocialSight/cli#readme) for
 full usage.
