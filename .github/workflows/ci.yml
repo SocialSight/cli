@@ -26,8 +26,9 @@ jobs:
         with:
           go-version: "1.25"
           cache: true
-      - uses: golangci/golangci-lint-action@v6
+      - uses: golangci/golangci-lint-action@v9
         with:
-          # Pinned rather than "latest": that resolved to a build too old to
-          # lint a go1.25+ module and silently broke every run.
+          # Pinned rather than "latest": that previously resolved to a build
+          # too old to lint a go1.25+ module and silently broke every run.
+          # v6 of this action doesn't support golangci-lint v2 at all.
           version: v2.13.0
