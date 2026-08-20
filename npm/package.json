@@ -1,0 +1,34 @@
+{
+  "name": "@socialsight/cli",
+  "version": "0.1.0",
+  "description": "Generate images and videos with SocialSight models",
+  "homepage": "https://github.com/SocialSight/cli",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/SocialSight/cli.git",
+    "directory": "npm"
+  },
+  "license": "MIT",
+  "bin": {
+    "socialsight": "bin/socialsight.js"
+  },
+  "files": [
+    "bin",
+    "scripts"
+  ],
+  "scripts": {
+    "postinstall": "node scripts/postinstall.js"
+  },
+  "os": [
+    "darwin",
+    "linux",
+    "win32"
+  ],
+  "cpu": [
+    "x64",
+    "arm64"
+  ],
+  "engines": {
+    "node": ">=16"
+  }
+}

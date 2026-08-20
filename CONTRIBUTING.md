@@ -91,3 +91,26 @@ PREFIX=/tmp/socialsight-test sh /tmp/install-test.sh --version v0.0.0-SNAPSHOT-<
 
 (`<commit>` is the short SHA GoReleaser used in the snapshot version, visible
 in the `dist/*.tar.gz` filenames.)
+
+## npm package
+
+`npm/` is a thin wrapper published as `@socialsight/cli`: its `postinstall`
+downloads the release matching `npm/package.json`'s own `version` field
+(checksum-verified against that release's `checksums.txt`), extracts it with
+the system `tar` (present by default on macOS, Linux, and Windows 10+ --
+bsdtar there also handles `.zip`, so this needs no extra npm dependency), and
+installs it as `bin/socialsight-bin` next to the `bin/socialsight.js` shim.
+
+**`npm/package.json`'s version must match an already-published GitHub
+release** (e.g. only bump it to `0.2.0` after `v0.2.0` is tagged and released,
+not before) -- `.github/workflows/ci.yml`'s `npm-smoke` job packs and
+installs it on every push specifically to catch that class of drift early.
+
+Publishing is manual for now (no `NPM_TOKEN`-based automation yet, mirroring
+where the Homebrew tap started):
+
+```bash
+cd npm
+npm version <new-version> --no-git-tag-version   # after the matching vX.Y.Z release exists
+npm publish --access public
+```

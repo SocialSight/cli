@@ -2,3 +2,7 @@
 /socialsight
 *.exe
 .DS_Store
+npm/node_modules/
+npm/bin/socialsight-bin
+npm/bin/socialsight-bin.exe
+*.tgz

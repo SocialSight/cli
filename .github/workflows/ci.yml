@@ -32,3 +32,22 @@ jobs:
           # too old to lint a go1.25+ module and silently broke every run.
           # v6 of this action doesn't support golangci-lint v2 at all.
           version: v2.13.0
+
+  npm-smoke:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+      - name: syntax check
+        run: |
+          node --check npm/bin/socialsight.js
+          node --check npm/scripts/postinstall.js
+      - name: pack and install against the real release matching package.json's version
+        run: |
+          cd npm
+          npm pack --pack-destination /tmp
+          mkdir -p /tmp/npm-smoke
+          npm install -g --prefix /tmp/npm-smoke /tmp/socialsight-cli-*.tgz
+          /tmp/npm-smoke/bin/socialsight version

@@ -2,7 +2,7 @@
 
 Command-line tool for generating images and videos with [SocialSight](https://socialsight.ai) models.
 
-> **Status:** all v1 commands work end-to-end (ENG-261). v0.1.0 is tagged; curl and Homebrew installs below both work today. npm distribution (ENG-272) isn't wired up yet.
+> **Status:** all v1 commands work end-to-end (ENG-261). v0.1.0 is tagged; curl and Homebrew installs below both work today. The npm package is built and tested but not yet published to the registry -- see [CONTRIBUTING.md](CONTRIBUTING.md#npm-package).
 
 ## Install
 
