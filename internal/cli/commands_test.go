@@ -28,7 +28,7 @@ func setupAuthedCLI(t *testing.T, extra http.HandlerFunc) *httptest.Server {
 			return
 		}
 		w.Header().Set("Content-Type", "application/json")
-		w.Write([]byte(`{"total_credits": 100, "subscription_credits": 100, "other_credits": 0}`))
+		_, _ = w.Write([]byte(`{"total_credits": 100, "subscription_credits": 100, "other_credits": 0}`))
 	})
 	if extra != nil {
 		mux.HandleFunc("/", extra)
@@ -59,7 +59,7 @@ func TestModelListAndInfo(t *testing.T) {
 			return
 		}
 		w.Header().Set("Content-Type", "application/json")
-		w.Write([]byte(`{"models": [
+		_, _ = w.Write([]byte(`{"models": [
 			{"id": "GEMINI_3_IMAGE", "modality": "image", "supported_aspect_ratios": ["1:1", "16:9"],
 			 "explore": {"display_name": "Gemini 3 Image Pro", "description": "High quality.", "strengths": ["quality"], "cautions": []}}
 		]}`))
@@ -97,7 +97,7 @@ func TestGenerateImageSuccessAndValidationError(t *testing.T) {
 		var req struct {
 			Quality string `json:"quality"`
 		}
-		json.Unmarshal(body, &req)
+		_ = json.Unmarshal(body, &req)
 
 		w.Header().Set("Content-Type", "application/json")
 		if req.Quality == "512p" {
@@ -105,11 +105,11 @@ func TestGenerateImageSuccessAndValidationError(t *testing.T) {
 			// serializes `detail` as a plain string, not the pydantic array
 			// shape the declared schema advertises.
 			w.WriteHeader(http.StatusUnprocessableEntity)
-			w.Write([]byte(`{"detail": "no image price for model=X resolution='512p'"}`))
+			_, _ = w.Write([]byte(`{"detail": "no image price for model=X resolution='512p'"}`))
 			return
 		}
 		w.WriteHeader(http.StatusAccepted)
-		w.Write([]byte(`{"job_id": "job-123", "status": "pending"}`))
+		_, _ = w.Write([]byte(`{"job_id": "job-123", "status": "pending"}`))
 	})
 
 	out, err := run(t, "generate", "image", "--model", "GEMINI_3_IMAGE", "--prompt", "a duck", "--quality", "1K")
@@ -134,7 +134,7 @@ func TestJobsGetAndWait(t *testing.T) {
 			return
 		}
 		w.Header().Set("Content-Type", "application/json")
-		w.Write([]byte(`{
+		_, _ = w.Write([]byte(`{
 			"job_id": "job-123", "job_type": "IMAGE", "status": "completed",
 			"created_at": "2026-01-01T00:00:00Z", "last_updated_at": "2026-01-01T00:00:05Z",
 			"outputs": [{"mediaId": "m1", "source": "generated", "url": "https://example.com/out.png",
@@ -197,7 +197,7 @@ func TestJobsWaitTimesOut(t *testing.T) {
 	setupAuthedCLI(t, func(w http.ResponseWriter, r *http.Request) {
 		requireAuthHeader(t, r)
 		w.Header().Set("Content-Type", "application/json")
-		w.Write([]byte(`{
+		_, _ = w.Write([]byte(`{
 			"job_id": "job-stuck", "job_type": "IMAGE", "status": "processing",
 			"created_at": "2026-01-01T00:00:00Z", "last_updated_at": "2026-01-01T00:00:00Z"
 		}`))
@@ -216,9 +216,9 @@ func TestGenerateImageWaitPollsToCompletion(t *testing.T) {
 		switch r.URL.Path {
 		case "/v1/image":
 			w.WriteHeader(http.StatusAccepted)
-			w.Write([]byte(`{"job_id": "job-wait", "status": "pending"}`))
+			_, _ = w.Write([]byte(`{"job_id": "job-wait", "status": "pending"}`))
 		case "/v1/jobs/job-wait":
-			w.Write([]byte(`{
+			_, _ = w.Write([]byte(`{
 				"job_id": "job-wait", "job_type": "IMAGE", "status": "completed",
 				"created_at": "2026-01-01T00:00:00Z", "last_updated_at": "2026-01-01T00:00:00Z",
 				"outputs": [{"mediaId": "m1", "source": "generated", "url": "https://example.com/out.png",
@@ -245,9 +245,9 @@ func TestJSONOutputMode(t *testing.T) {
 		w.Header().Set("Content-Type", "application/json")
 		switch r.URL.Path {
 		case "/v1/models/generation":
-			w.Write([]byte(`{"models": [{"id": "M1", "modality": "image"}]}`))
+			_, _ = w.Write([]byte(`{"models": [{"id": "M1", "modality": "image"}]}`))
 		case "/v1/generation/image/cost":
-			w.Write([]byte(`{"credits": 42, "modelId": "M1", "jobType": "IMAGE"}`))
+			_, _ = w.Write([]byte(`{"credits": 42, "modelId": "M1", "jobType": "IMAGE"}`))
 		default:
 			http.NotFound(w, r)
 		}

@@ -21,11 +21,11 @@ func fakeCreditsServer(t *testing.T, validKey string) *httptest.Server {
 		}
 		if r.Header.Get("Authorization") != "Bearer "+validKey {
 			w.WriteHeader(http.StatusForbidden)
-			w.Write([]byte(`{"detail": "Unauthorized"}`))
+			_, _ = w.Write([]byte(`{"detail": "Unauthorized"}`))
 			return
 		}
 		w.Header().Set("Content-Type", "application/json")
-		w.Write([]byte(`{"total_credits": 42, "subscription_credits": 40, "other_credits": 2}`))
+		_, _ = w.Write([]byte(`{"total_credits": 42, "subscription_credits": 40, "other_credits": 2}`))
 	}))
 	t.Cleanup(srv.Close)
 	return srv

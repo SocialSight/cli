@@ -18,7 +18,7 @@ func TestGetGenerationModelsWithResponse(t *testing.T) {
 			t.Fatalf("unexpected Authorization header: %q", got)
 		}
 		w.Header().Set("Content-Type", "application/json")
-		w.Write([]byte(`{"models": [{"id": "nano_banana_2", "type": "image"}]}`))
+		_, _ = w.Write([]byte(`{"models": [{"id": "nano_banana_2", "type": "image"}]}`))
 	}))
 	defer srv.Close()
 
