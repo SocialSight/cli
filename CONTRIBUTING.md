@@ -58,3 +58,19 @@ goreleaser release --snapshot --clean --skip=publish
 
 This is also the foundation the curl installer (ENG-270), Homebrew tap
 (ENG-271), and npm wrapper (ENG-272) pull release assets from.
+
+## Testing install.sh without a real release
+
+`install.sh` downloads from `https://github.com/SocialSight/cli/releases/...`,
+so exercising it without tagging a real release means pointing it at a stand-in
+server instead. After a local snapshot build (see above), serve `dist/` and
+point a scratch copy of the script at it:
+
+```bash
+python3 -m http.server 8931 --directory dist &
+sed 's#base_url="https://github.com/${repo}/releases/download/${version}"#base_url="http://127.0.0.1:8931"#' install.sh > /tmp/install-test.sh
+PREFIX=/tmp/socialsight-test sh /tmp/install-test.sh --version v0.0.0-SNAPSHOT-<commit>   # matches the snapshot's version string
+```
+
+(`<commit>` is the short SHA GoReleaser used in the snapshot version, visible
+in the `dist/*.tar.gz` filenames.)
