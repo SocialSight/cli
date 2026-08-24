@@ -55,10 +55,17 @@ brews:
     repository:
       owner: SocialSight
       name: homebrew-tap
-      token: "{{ envOrDefault \"HOMEBREW_TAP_GITHUB_TOKEN\" \"\" }}"
+      token: "{{ .Env.HOMEBREW_TAP_GITHUB_TOKEN }}"
     # Don't fail the whole release if the cross-repo token isn't set yet;
     # just skip updating the tap (the rest of the release still succeeds).
-    skip_upload: "{{ eq (envOrDefault \"HOMEBREW_TAP_GITHUB_TOKEN\" \"\") \"\" }}"
+    # `eq` is a core Go template function, unlike `envOrDefault` (a
+    # GoReleaser/Sprig extension that turned out not to be registered in
+    # the template context skip_upload is actually evaluated in at publish
+    # time -- confirmed by a real release failing on it, v2.18.0). Direct
+    # .Env field access is safe here because the release workflow's env:
+    # block always defines this key (empty string if the secret is unset),
+    # so it's never a template.
+    skip_upload: "{{ eq .Env.HOMEBREW_TAP_GITHUB_TOKEN \"\" }}"
     directory: Formula
     homepage: "https://github.com/SocialSight/cli"
     description: "Generate images and videos with SocialSight models"
