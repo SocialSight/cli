@@ -14,6 +14,7 @@ import (
 
 	"github.com/SocialSight/cli/internal/client"
 	"github.com/SocialSight/cli/internal/config"
+	"github.com/SocialSight/cli/internal/oauth"
 )
 
 func newAuthCmd() *cobra.Command {
@@ -29,53 +30,94 @@ func newAuthCmd() *cobra.Command {
 
 func newAuthLoginCmd() *cobra.Command {
 	var key string
+	var paste bool
 
 	cmd := &cobra.Command{
 		Use:   "login",
-		Short: "Save a SocialSight API key",
-		Long: "Save a SocialSight API key so other commands can authenticate.\n" +
-			"Create a key from the SocialSight dashboard, then pass it with --key\n" +
-			"or paste it when prompted.",
+		Short: "Sign in to SocialSight",
+		Long: "Signs in via your browser by default.\n" +
+			"Pass --key (or --paste to be prompted) to authenticate with an API\n" +
+			"key instead -- useful for CI or headless environments where a\n" +
+			"browser isn't available.",
 		RunE: func(cmd *cobra.Command, args []string) error {
-			if key == "" {
-				var err error
-				key, err = readKey(cmd)
-				if err != nil {
-					return err
-				}
+			if key != "" || paste {
+				return loginWithAPIKey(cmd, key)
 			}
-			key = strings.TrimSpace(key)
-			if key == "" {
-				return fmt.Errorf("no API key provided")
-			}
-
-			ctx, cancel := context.WithTimeout(cmd.Context(), 15*time.Second)
-			defer cancel()
-
-			balance, err := fetchCreditBalance(ctx, client.BaseURL(), key)
-			if err != nil {
-				return fmt.Errorf("could not verify key: %w", err)
-			}
-
-			if err := config.SaveAPIKey(key); err != nil {
-				return fmt.Errorf("saving key: %w", err)
-			}
-
-			path, _ := config.Path()
-			fmt.Fprintf(cmd.OutOrStdout(), "Logged in as %s. Saved to %s.\n", config.Mask(key), path)
-			fmt.Fprintf(cmd.OutOrStdout(), "Credits remaining: %d\n", balance.TotalCredits)
-			return nil
+			return loginWithBrowser(cmd)
 		},
 	}
 
-	cmd.Flags().StringVar(&key, "key", "", "API key (omit to be prompted)")
+	cmd.Flags().StringVar(&key, "key", "", "API key (skips the browser flow)")
+	cmd.Flags().BoolVar(&paste, "paste", false, "paste an API key interactively instead of using the browser")
 	return cmd
+}
+
+func loginWithAPIKey(cmd *cobra.Command, key string) error {
+	if key == "" {
+		var err error
+		key, err = readKey(cmd)
+		if err != nil {
+			return err
+		}
+	}
+	key = strings.TrimSpace(key)
+	if key == "" {
+		return fmt.Errorf("no API key provided")
+	}
+
+	ctx, cancel := context.WithTimeout(cmd.Context(), 15*time.Second)
+	defer cancel()
+
+	balance, err := fetchCreditBalance(ctx, client.BaseURL(), key)
+	if err != nil {
+		return fmt.Errorf("could not verify key: %w", err)
+	}
+
+	if err := config.SaveAPIKey(key); err != nil {
+		return fmt.Errorf("saving key: %w", err)
+	}
+
+	path, _ := config.Path()
+	fmt.Fprintf(cmd.OutOrStdout(), "Logged in as %s. Saved to %s.\n", config.Mask(key), path)
+	fmt.Fprintf(cmd.OutOrStdout(), "Credits remaining: %d\n", balance.TotalCredits)
+	return nil
+}
+
+func loginWithBrowser(cmd *cobra.Command) error {
+	mcpBaseURL, err := client.MCPBaseURL()
+	if err != nil {
+		return fmt.Errorf("%w (or run `socialsight auth login --paste` instead)", err)
+	}
+
+	tok, err := oauth.Login(cmd.Context(), oauth.LoginOptions{
+		MCPBaseURL: mcpBaseURL,
+		Output:     cmd.OutOrStdout(),
+	})
+	if err != nil {
+		return fmt.Errorf("browser login failed: %w (you can also run `socialsight auth login --paste`)", err)
+	}
+
+	ctx, cancel := context.WithTimeout(cmd.Context(), 15*time.Second)
+	defer cancel()
+
+	balance, err := fetchCreditBalance(ctx, client.BaseURL(), tok.AccessToken)
+	if err != nil {
+		return fmt.Errorf("signed in, but couldn't verify the session: %w", err)
+	}
+
+	if err := config.SaveOAuth(tok.AccessToken, tok.RefreshToken, tok.ExpiresAt, mcpBaseURL); err != nil {
+		return fmt.Errorf("saving session: %w", err)
+	}
+
+	fmt.Fprintln(cmd.OutOrStdout(), "Signed in to SocialSight.")
+	fmt.Fprintf(cmd.OutOrStdout(), "Credits remaining: %d\n", balance.TotalCredits)
+	return nil
 }
 
 func newAuthLogoutCmd() *cobra.Command {
 	return &cobra.Command{
 		Use:   "logout",
-		Short: "Remove the saved API key",
+		Short: "Sign out (forget the saved credential)",
 		RunE: func(cmd *cobra.Command, args []string) error {
 			if err := config.DeleteAPIKey(); err != nil {
 				return err
@@ -92,25 +134,32 @@ func newAuthLogoutCmd() *cobra.Command {
 func newAuthWhoamiCmd() *cobra.Command {
 	return &cobra.Command{
 		Use:   "whoami",
-		Short: "Show the currently authenticated key",
+		Short: "Show the currently authenticated session",
 		RunE: func(cmd *cobra.Command, args []string) error {
-			key, source, err := config.APIKey()
+			cred, err := config.Load()
 			if err != nil {
 				return err
 			}
-			if key == "" {
+			if cred.Token == "" {
 				return fmt.Errorf("not logged in, run `socialsight auth login`")
 			}
 
 			ctx, cancel := context.WithTimeout(cmd.Context(), 15*time.Second)
 			defer cancel()
 
-			balance, err := fetchCreditBalance(ctx, client.BaseURL(), key)
+			balance, err := fetchCreditBalance(ctx, client.BaseURL(), cred.Token)
 			if err != nil {
-				return fmt.Errorf("key from %s is not valid: %w", source, err)
+				return fmt.Errorf("session from %s is not valid: %w", cred.Source, err)
 			}
 
-			fmt.Fprintf(cmd.OutOrStdout(), "Authenticated as %s (from %s)\n", config.Mask(key), source)
+			if cred.Method == config.MethodOAuth {
+				fmt.Fprintf(cmd.OutOrStdout(), "Signed in via browser login (from %s)\n", cred.Source)
+				if !cred.ExpiresAt.IsZero() {
+					fmt.Fprintf(cmd.OutOrStdout(), "Session expires: %s\n", cred.ExpiresAt.Format(time.RFC3339))
+				}
+			} else {
+				fmt.Fprintf(cmd.OutOrStdout(), "Authenticated as %s (from %s)\n", config.Mask(cred.Token), cred.Source)
+			}
 			fmt.Fprintf(cmd.OutOrStdout(), "Credits remaining: %d\n", balance.TotalCredits)
 			return nil
 		},

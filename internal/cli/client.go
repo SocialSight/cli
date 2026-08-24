@@ -4,14 +4,15 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"net/http"
 	"strings"
 
 	"github.com/SocialSight/cli/internal/client"
 	"github.com/SocialSight/cli/internal/config"
 )
 
-// requireClient builds an authenticated API client from the stored/env API
-// key, or returns a clear error if the user isn't logged in.
+// requireClient builds an authenticated API client from the stored/env
+// credential, or returns a clear error if the user isn't logged in.
 func requireClient() (*client.ClientWithResponses, error) {
 	key, _, err := config.APIKey()
 	if err != nil {
@@ -21,6 +22,17 @@ func requireClient() (*client.ClientWithResponses, error) {
 		return nil, fmt.Errorf("not logged in, run `socialsight auth login`")
 	}
 	return client.NewAuthenticated(client.BaseURL(), key)
+}
+
+// authError returns a friendly re-login prompt for 401/403 responses (an
+// OAuth session past its 1-day expiry hits this the same way a bad API key
+// would), or nil for any other status. Every authenticated command should
+// check this before falling back to a generic "unexpected response" error.
+func authError(statusCode int) error {
+	if statusCode == http.StatusUnauthorized || statusCode == http.StatusForbidden {
+		return errors.New("not authenticated (or your session expired) -- run `socialsight auth login`")
+	}
+	return nil
 }
 
 // validationError renders an HTTPValidationError. The backend's declared

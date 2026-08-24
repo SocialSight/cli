@@ -20,7 +20,8 @@ npm install -g @socialsight/cli
 ## Usage
 
 ```bash
-socialsight auth login --key <api-key>   # or omit --key to be prompted
+socialsight auth login                   # opens your browser to sign in
+socialsight auth login --key <api-key>   # or --paste to be prompted -- for CI/headless use
 socialsight auth whoami
 socialsight auth logout
 
@@ -36,8 +37,13 @@ socialsight jobs get <job_id>
 socialsight jobs wait <job_id>
 ```
 
-The API key comes from the SocialSight web dashboard. It's saved to
-`~/.socialsight/config`; set `SOCIALSIGHT_API_KEY` to override it (e.g. in CI).
+`auth login` signs in via your browser by default (the same OAuth flow used
+when wiring SocialSight up as an MCP server) and stores the session in
+`~/.socialsight/config`. Sessions last a day; once expired, just run
+`socialsight auth login` again -- there's no auto-refresh (yet). For CI or
+headless boxes without a browser, use `--key <api-key>` (from the SocialSight
+web dashboard) or `--paste` to be prompted; set `SOCIALSIGHT_API_KEY` to
+override the stored credential entirely.
 
 Add `--wait` to `generate image`/`generate video` to block until the job
 finishes instead of just printing its ID (shows a spinner on an interactive

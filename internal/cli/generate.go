@@ -239,6 +239,9 @@ func newGenerateImageCmd() *cobra.Command {
 		if err != nil {
 			return err
 		}
+		if err := authError(resp.StatusCode()); err != nil {
+			return err
+		}
 		if resp.JSON422 != nil {
 			return validationError(resp.JSON422)
 		}
@@ -275,6 +278,9 @@ func newGenerateVideoCmd() *cobra.Command {
 		resp, err := c.CreateVideoJobV1VideoPostWithResponse(ctx, req)
 		cancel()
 		if err != nil {
+			return err
+		}
+		if err := authError(resp.StatusCode()); err != nil {
 			return err
 		}
 		if resp.JSON422 != nil {
@@ -317,6 +323,9 @@ func newGenerateCostImageCmd() *cobra.Command {
 			if err != nil {
 				return err
 			}
+			if err := authError(resp.StatusCode()); err != nil {
+				return err
+			}
 			if resp.JSON422 != nil {
 				return validationError(resp.JSON422)
 			}
@@ -352,6 +361,9 @@ func newGenerateCostVideoCmd() *cobra.Command {
 
 			resp, err := c.GetVideoGenerationCostV1GenerationVideoCostPostWithResponse(ctx, req)
 			if err != nil {
+				return err
+			}
+			if err := authError(resp.StatusCode()); err != nil {
 				return err
 			}
 			if resp.JSON422 != nil {

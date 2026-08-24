@@ -99,6 +99,9 @@ func getJob(ctx context.Context, c *client.ClientWithResponses, jobID string) (*
 	if err != nil {
 		return nil, err
 	}
+	if err := authError(resp.StatusCode()); err != nil {
+		return nil, err
+	}
 	if resp.JSON422 != nil {
 		return nil, validationError(resp.JSON422)
 	}
