@@ -1,6 +1,6 @@
 {
   "name": "@socialsight/cli",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "Generate images and videos with SocialSight models",
   "homepage": "https://github.com/SocialSight/cli",
   "repository": {
