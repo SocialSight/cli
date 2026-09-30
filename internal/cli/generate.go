@@ -239,6 +239,9 @@ func newGenerateImageCmd() *cobra.Command {
 		if err != nil {
 			return err
 		}
+		if err := planRequiredError(resp.StatusCode(), resp.Body); err != nil {
+			return err
+		}
 		if err := authError(resp.StatusCode()); err != nil {
 			return err
 		}
@@ -278,6 +281,9 @@ func newGenerateVideoCmd() *cobra.Command {
 		resp, err := c.CreateVideoJobV1VideoPostWithResponse(ctx, req)
 		cancel()
 		if err != nil {
+			return err
+		}
+		if err := planRequiredError(resp.StatusCode(), resp.Body); err != nil {
 			return err
 		}
 		if err := authError(resp.StatusCode()); err != nil {
