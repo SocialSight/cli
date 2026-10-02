@@ -35,6 +35,34 @@ func authError(statusCode int) error {
 	return nil
 }
 
+// subscribeURL is where a plan-gated refusal sends the user to upgrade.
+const subscribeURL = "https://www.socialsight.ai/apps/subscribe?utm_source=cli&utm_medium=cli_error&utm_campaign=plan_required"
+
+// planRequiredError explains a 403 PLAN_REQUIRED response: the user's plan
+// doesn't include the requested model (e.g. Seedance or Seedream without a
+// subscription, Wan 3.0 below Standard). It returns nil for any other response,
+// so generation commands must check it before authError, which would otherwise
+// report that 403 as an expired session.
+func planRequiredError(statusCode int, body []byte) error {
+	if statusCode != http.StatusForbidden {
+		return nil
+	}
+	var payload struct {
+		Detail struct {
+			Code    string `json:"code"`
+			Message string `json:"message"`
+		} `json:"detail"`
+	}
+	if err := json.Unmarshal(body, &payload); err != nil || payload.Detail.Code != "PLAN_REQUIRED" {
+		return nil
+	}
+	msg := payload.Detail.Message
+	if msg == "" {
+		msg = "your plan doesn't include this model"
+	}
+	return fmt.Errorf("%s\nPick another model (see `socialsight model list`) or upgrade your plan: %s", msg, subscribeURL)
+}
+
 // validationError renders an HTTPValidationError. The backend's declared
 // schema for this field is an array of structured pydantic errors, but a
 // manually raised HTTPException(422, detail="...") serializes it as a plain
